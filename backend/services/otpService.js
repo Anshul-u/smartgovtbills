@@ -31,7 +31,7 @@ async function sendViaFast2SMS(phone, otp) {
       },
       body: JSON.stringify({
         route: 'q',          // Using 'otp' route as requested
-        message: `Your SmartGov OTP is ${otp}`,
+        message: `SmartGov verification code: ${otp}`,
 language: 'english',  // Replaced 'message' with 'variables_values'
         numbers: cleanPhone,
       }),
