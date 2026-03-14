@@ -70,9 +70,9 @@ if (process.env.NODE_ENV === 'production') {
   const root = path.join(__dirname, '..', 'frontend', 'dist');
   app.use(express.static(root));
 
-  app.get('*', (req, res) => {
-    res.sendFile('index.html', { root });
-  });
+  app.get('/', (req, res) => {
+  res.sendFile('index.html', { root });
+});
 } else {
   app.get('/', (req, res) => {
     res.send('API is running in development mode...');
