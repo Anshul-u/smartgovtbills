@@ -1,5 +1,5 @@
 // OTP Service - Fast2SMS Only (Strict)
-
+const axios = require("axios");
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
@@ -21,7 +21,7 @@ async function sendViaFast2SMS(phone, otp) {
   }
 
   try {
-    console.log(`[OTP] Sending to ${cleanPhone} via Fast2SMS OTP Route...`);
+    console.log(`[OTP] Sending to ${cleanPhone} via Fast2SMS Quick Route...`);
 
     const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
       method: 'POST',
@@ -30,8 +30,9 @@ async function sendViaFast2SMS(phone, otp) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        route: 'otp',           // Using 'otp' route as requested
-        variables_values: otp,  // Replaced 'message' with 'variables_values'
+        route: 'q',          // Using 'otp' route as requested
+        message: `Your SmartGov OTP is ${otp}`,
+language: 'english',  // Replaced 'message' with 'variables_values'
         numbers: cleanPhone,
       }),
     });
