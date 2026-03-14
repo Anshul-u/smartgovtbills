@@ -4,10 +4,7 @@ import axios from 'axios';
 export const AuthContext = createContext();
 
 // Setup axios defaults
-axios.defaults.baseURL =
-  window.location.hostname === "localhost"
-    ? "http://localhost:5000/api"
-    : "https://smartgovtbills-backend.onrender.com/api";
+axios.defaults.baseURL = "https://smartgovtbills-backend.onrender.com/api";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
