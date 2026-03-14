@@ -115,9 +115,9 @@ const sendOTPEmail = async (email, otp) => {
   }
 
   try {
-  console.log("Starting OTP email send...");
+    console.log("Starting OTP email send...");
 
-  const mailOptions = {
+    const mailOptions = {
       from: `"SmartGov Security" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `Your SmartGov Verification Code: ${otp} 🛡️`,

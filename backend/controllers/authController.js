@@ -74,13 +74,10 @@ const sendOtp = async (req, res) => {
       user.otp = otp;
       user.otpExpires = otpExpires;
       await user.save();
-    } else {
-      // Store OTP temporarily - will be validated during registration
-      // For now, we store it in a temp way (in production, use Redis)
-      // We'll return it to client for dev purposes
     }
 
-    await sendOTP(email, otp, phone);
+    // Dispatch email in background (fire-and-forget) to prevent long loading times
+    sendOTP(email, otp, phone).catch(err => console.error('[OTP] Background delivery failed:', err));
 
     res.json({ 
       message: 'OTP sent successfully',
@@ -167,7 +164,8 @@ const forgotPassword = async (req, res) => {
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    await sendOTP(user.email, otp, user.phone);
+    // Dispatch email in background (fire-and-forget) to prevent long loading times
+    sendOTP(user.email, otp, user.phone).catch(err => console.error('[OTP] Background delivery failed:', err));
 
     res.json({ 
       message: 'OTP sent to your registered email address',
