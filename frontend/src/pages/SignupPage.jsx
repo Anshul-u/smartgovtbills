@@ -36,7 +36,7 @@ const SignupPage = () => {
     const fullPhone = `+91${phone}`;
 
     try {
-      const { data } = await axios.post('/auth/send-otp', { phone: fullPhone });
+      const { data } = await axios.post('/auth/send-otp', { phone: fullPhone, email });
       if (data.otp) setServerOtp(data.otp);
       setStep(2);
     } catch (err) {

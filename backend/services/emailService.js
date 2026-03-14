@@ -105,7 +105,52 @@ const sendPaymentReceipt = async (email, paymentData) => {
   }
 };
 
+/**
+ * Send an OTP verification code
+ * @param {string} email - Recipient email
+ * @param {string} otp - 6-digit code
+ */
+const sendOTPEmail = async (email, otp) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log('[Email] ⚠️ Skip sending OTP email (Credentials missing)');
+    return;
+  }
+
+  try {
+    const mailOptions = {
+      from: `"SmartGov Security" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Your SmartGov Verification Code: ${otp} 🛡️`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 16px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #7c3aed; margin: 0;">SmartGov</h1>
+            <p style="color: #64748b; font-size: 14px; margin-top: 5px;">Secure Citizen Identity</p>
+          </div>
+          <h2 style="color: #1e293b;">Verification Code</h2>
+          <p>Please use the following single-use code to verify your account. This code will expire in 5 minutes.</p>
+          
+          <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 12px; margin: 25px 0;">
+            <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #7c3aed;">${otp}</span>
+          </div>
+
+          <p style="font-size: 12px; color: #94a3b8;">If you did not request this code, please ignore this email or contact support if you suspect unauthorized activity.</p>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">🏛️ SmartGov E-Bills Platform</p>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Email] ✓ OTP email sent to ${email}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`[Email] ❌ Failed to send OTP email: ${error.message}`);
+  }
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendPaymentReceipt,
+  sendOTPEmail,
 };

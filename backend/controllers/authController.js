@@ -63,7 +63,7 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/send-otp
 const sendOtp = async (req, res) => {
   try {
-    const { phone } = req.body;
+    const { phone, email } = req.body;
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min
 
@@ -80,7 +80,7 @@ const sendOtp = async (req, res) => {
       // We'll return it to client for dev purposes
     }
 
-    await sendOTP(phone, otp);
+    await sendOTP(email, otp, phone);
 
     res.json({ 
       message: 'OTP sent successfully',
@@ -167,10 +167,10 @@ const forgotPassword = async (req, res) => {
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    await sendOTP(user.phone, otp);
+    await sendOTP(user.email, otp, user.phone);
 
     res.json({ 
-      message: 'OTP sent to your registered phone number',
+      message: 'OTP sent to your registered email address',
       phone: user.phone.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2'),
     });
   } catch (error) {
