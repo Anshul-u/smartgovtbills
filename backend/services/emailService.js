@@ -2,13 +2,13 @@ const nodemailer = require('nodemailer');
 
 // Initialize transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
-  port: process.env.EMAIL_PORT || 587,
-  secure: process.env.EMAIL_PORT == 465, // true for 465, false for other ports
+  host: process.env.EMAIL_HOST || "smtp.gmail.com",
+  port: 587,
+  secure: false, // true only for port 465
   auth: {
-    user: process.env.EMAIL_USER || '', 
-    pass: process.env.EMAIL_PASS || '', 
-  },
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
 /**
