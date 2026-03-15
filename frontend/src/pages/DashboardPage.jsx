@@ -72,8 +72,11 @@ const DashboardPage = () => {
         throw new Error('Razorpay SDK not loaded. Please refresh the page and try again.');
       }
 
+      const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SRQMvZLDR2zpyI';
+      console.log(`[Frontend] Using Razorpay Key: ${rzpKey.substring(0, 8)}...`);
+
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SRQMvZLDR2zpyI',
+        key: rzpKey,
         amount: data.amount,
         currency: data.currency,
         name: 'SmartGov Bills',
@@ -205,6 +208,11 @@ const DashboardPage = () => {
                   Senior Citizen · 10% Discount
                 </span>
               )}
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <span className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">
+                  System v1.2.0 (Razorpay Active)
+                </span>
+              </div>
             </motion.div>
 
             {/* Balance Card */}
