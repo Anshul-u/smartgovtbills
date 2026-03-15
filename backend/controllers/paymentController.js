@@ -124,27 +124,43 @@ const getPaymentHistory = async (req, res) => {
  */
 const generateReceipt = async (req, res) => {
   try {
-    const transaction = await Transaction.findById(req.params.transactionId)
+    const { transactionId } = req.params;
+    let transaction;
+
+    // Try finding by transaction ID first
+    transaction = await Transaction.findById(transactionId)
       .populate('bill')
       .populate('user', 'name email phone');
 
+    // If not found, try finding the successful transaction for this bill ID
     if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
+      transaction = await Transaction.findOne({ 
+        bill: transactionId, 
+        paymentStatus: 'success' 
+      })
+      .populate('bill')
+      .populate('user', 'name email phone');
+    }
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction or Paid Bill not found' });
     }
 
     const receipt = {
+      status: 'success', // For frontend confirmation
       receiptNo: `RCP-${transaction._id.toString().slice(-8).toUpperCase()}`,
       date: transaction.createdAt,
       payerName: transaction.user?.name || 'Citizen',
       payerEmail: transaction.user?.email || '',
       billType: transaction.bill?.billType || 'N/A',
       amount: transaction.amount,
-      paymentId: transaction.razorpayPaymentId,
-      status: transaction.paymentStatus,
+      paymentId: transaction.razorpayPaymentId || 'N/A',
+      paymentStatus: transaction.paymentStatus,
     };
 
     res.json(receipt);
   } catch (error) {
+    console.error('[Receipt] Generation error:', error);
     res.status(500).json({ message: 'Receipt generation failed' });
   }
 };

@@ -18,6 +18,19 @@ app.get('/api/health', (req, res) => {
   res.send('SmartGov Bills API is running...');
 });
 
+// System Status for Debugging
+app.get('/api/system-status', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '1.2.1',
+    razorpay: {
+      keyId: process.env.RAZORPAY_KEY_ID ? 'Configured ✅' : 'Missing ❌',
+      secret: process.env.RAZORPAY_KEY_SECRET ? 'Configured ✅' : 'Missing ❌',
+    },
+    env: process.env.NODE_ENV
+  });
+});
+
 // GET test endpoint (accessible from browser)
 app.get('/api/test', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running!' });

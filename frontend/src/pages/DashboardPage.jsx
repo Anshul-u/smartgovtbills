@@ -40,7 +40,21 @@ const DashboardPage = () => {
     }
   };
 
-  useEffect(() => { fetchBills(); }, []);
+  useEffect(() => {
+    const checkSystem = async () => {
+      try {
+        const { data } = await axios.get('/system-status');
+        console.log('[System] Status:', data);
+        if (data.razorpay.keyId === 'Missing ❌') {
+          console.warn('[System] Razorpay keys are missing on the backend!');
+        }
+      } catch (err) {
+        console.error('[System] Failed to fetch system status', err);
+      }
+    };
+    checkSystem();
+    fetchBills(); 
+  }, []);
 
   const [payingBillId, setPayingBillId] = useState(null);
 
@@ -264,74 +278,133 @@ const DashboardPage = () => {
               ))}
             </motion.div>
 
-            {/* Transactions Table */}
-            <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{delay: 0.3}} className="glass-panel overflow-hidden">
-              <div className="p-6 border-b border-white/5">
-                <h2 className="text-lg font-bold text-white">Transaction History</h2>
+            {/* Pending Bills Section */}
+            <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{delay: 0.2}} className="glass-panel overflow-hidden">
+              <div className="p-6 border-b border-white/5 bg-amber-500/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Calculator size={20} className="text-amber-400" /> Pending Payments
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">Settle your outstanding government dues</p>
+                  </div>
+                  <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md">
+                    {bills.filter(b => b.status === 'pending').length} Action Required
+                  </span>
+                </div>
               </div>
               
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
-                      <th className="px-6 py-4"></th>
-                    </tr>
-                  </thead>
                   <tbody className="divide-y divide-white/5">
                     {loading ? (
-                      [...Array(3)].map((_, i) => (
+                      [...Array(2)].map((_, i) => (
                         <tr key={i}><td colSpan="5" className="p-4"><div className="skeleton h-12 w-full" /></td></tr>
                       ))
-                    ) : bills.length === 0 ? (
+                    ) : bills.filter(b => b.status === 'pending').length === 0 ? (
                       <tr><td colSpan="5" className="p-12 text-center text-gray-500">
-                        <Calculator size={40} className="mx-auto mb-3 text-gray-600" />
-                        No bills yet. <Link to="/calculator" className="text-primary-400 hover:underline">Calculate your first bill</Link>
+                        <CheckCircle size={40} className="mx-auto mb-3 text-green-500/50" />
+                        <p className="font-bold text-gray-400">All caught up!</p>
+                        <p className="text-xs mt-1">No pending bills at the moment.</p>
                       </td></tr>
                     ) : (
-                      bills.map((bill) => (
+                      bills.filter(b => b.status === 'pending').map((bill) => (
                         <tr key={bill._id} className="hover:bg-surface-700/30 transition-colors">
-                          <td className="px-6 py-5 whitespace-nowrap">
+                          <td className="px-6 py-5 whitespace-nowrap w-32">
                             <div className="text-sm font-medium text-gray-300">{new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
                             <div className="text-xs text-gray-600">{new Date(bill.createdAt).getFullYear()}</div>
                           </td>
                           <td className="px-6 py-5">
                             <div className="text-sm font-semibold text-white capitalize">{bill.billType} Bill</div>
-                            <div className="text-xs text-gray-500">ID: {bill._id.substring(0,8)}</div>
+                            <div className="text-xs text-gray-500 font-mono">#{bill._id.substring(bill._id.length - 8).toUpperCase()}</div>
                           </td>
                           <td className="px-6 py-5">
-                            {bill.status === 'paid' ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-400 bg-green-400/10 px-3 py-1 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Paid
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Pending
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded uppercase tracking-wider border border-amber-400/20">
+                              Pending
+                            </span>
                           </td>
                           <td className="px-6 py-5 text-right">
-                            <div className={`text-base font-bold ${bill.status === 'paid' ? 'text-gray-300' : 'text-amber-400'}`}>
+                            <div className="text-base font-bold text-white">
                               ₹{bill.totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}
                             </div>
                           </td>
                           <td className="px-6 py-5 text-right">
-                            {bill.status === 'pending' ? (
-                              <button 
-                                onClick={() => handlePay(bill._id, bill)}
-                                disabled={payingBillId === bill._id}
-                                className="btn-primary text-xs py-2 px-5 disabled:opacity-50"
-                              >
-                                {payingBillId === bill._id ? 'Processing...' : 'Pay Now'}
-                              </button>
-                            ) : (
-                              <button onClick={() => handleDownloadReceipt(bill._id)} className="p-2 text-gray-500 hover:text-primary-400 transition-colors" title="Download Receipt">
-                                <Download size={18} />
-                              </button>
-                            )}
+                            <button 
+                              onClick={() => handlePay(bill._id, bill)}
+                              disabled={payingBillId === bill._id}
+                              className="btn-primary text-xs py-2 px-6 rounded-lg font-black uppercase tracking-wider"
+                            >
+                              {payingBillId === bill._id ? 'Establishing...' : 'Pay Dues'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+
+            {/* Transaction History Section */}
+            <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{delay: 0.3}} className="glass-panel overflow-hidden">
+              <div className="p-6 border-b border-white/5 bg-surface-800">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <History size={20} className="text-primary-400" /> Payment History
+                  </h2>
+                  <button className="text-xs font-bold text-primary-400 hover:text-white transition-colors">View All Transactions</button>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/5">
+                      <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Transaction Date</th>
+                      <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Service Details</th>
+                      <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Status</th>
+                      <th className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] text-right">Amount</th>
+                      <th className="px-6 py-3 text-right"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {loading ? (
+                      [...Array(2)].map((_, i) => (
+                        <tr key={i}><td colSpan="5" className="p-4"><div className="skeleton h-12 w-full" /></td></tr>
+                      ))
+                    ) : bills.filter(b => b.status === 'paid').length === 0 ? (
+                      <tr><td colSpan="5" className="p-10 text-center text-gray-600">
+                        <History size={32} className="mx-auto mb-3 opacity-20" />
+                        <p className="text-sm font-medium">No previous transactions found.</p>
+                      </td></tr>
+                    ) : (
+                      bills.filter(b => b.status === 'paid').map((bill) => (
+                        <tr key={bill._id} className="hover:bg-surface-700/20 transition-colors group">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-400">{new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-semibold text-white capitalize">{bill.billType} Payment</div>
+                            <div className="text-[10px] text-gray-600 font-mono">TXN-{bill._id.substring(bill._id.length - 8).toUpperCase()}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-green-400 bg-green-400/10 px-2 py-0.5 rounded uppercase tracking-wider border border-green-400/20">
+                              Completed
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="text-sm font-bold text-gray-300">
+                              ₹{bill.totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button 
+                              onClick={() => window.open(`/payment-success?txn_id=${bill._id}&print=true`, '_blank')}
+                              className="w-10 h-10 rounded-lg bg-surface-600 flex items-center justify-center text-gray-400 hover:text-primary-400 hover:bg-primary-500/10 transition-all group-hover:scale-110"
+                              title="Download Receipt"
+                            >
+                              <Download size={18} />
+                            </button>
                           </td>
                         </tr>
                       ))

@@ -21,11 +21,13 @@ const PaymentSuccessPage = () => {
   const [status, setStatus] = useState('verifying'); // verifying, success, failed
   const [error, setError] = useState('');
   const [receiptData, setReceiptData] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const checkStatus = async () => {
-    const txnId = searchParams.get('txn');
+    const txnId = searchParams.get('txn_id') || searchParams.get('txn');
     
     if (!txnId) {
+      console.warn('[Status] No txn_id found in URL');
       setStatus('failed');
       setError('No payment reference found after redirect');
       return;
@@ -33,28 +35,25 @@ const PaymentSuccessPage = () => {
 
     try {
       console.log('[Status] Verifying Transaction:', txnId);
-      // We check history or a specific status endpoint for this transactionId
-      const { data } = await axios.get(`/payments/history`);
-      const transaction = data.find(t => t._id === txnId);
-
-      if (transaction && transaction.paymentStatus === 'success') {
+      // Fetch specific receipt data
+      const { data } = await axios.get(`/payments/receipt/${txnId}`);
+      
+      if (data && data.status === 'success') {
+        setReceiptData(data);
         setStatus('success');
+        setShowConfetti(true);
+        
+        // Auto-print if requested
+        if (searchParams.get('print') === 'true') {
+          setTimeout(() => handlePrint(), 1500);
+        }
       } else {
-        // Retry once after a delay if it's not immediately success
-        setTimeout(async () => {
-          const retryRes = await axios.get(`/payments/history`);
-          const retryTxn = retryRes.data.find(t => t._id === txnId);
-          if (retryTxn && retryTxn.paymentStatus === 'success') {
-            setStatus('success');
-          } else {
-            setStatus('failed');
-            setError('Payment verification pending. Please check your history in a few minutes.');
-          }
-        }, 3000);
+        setStatus('failed');
+        setError('Payment verification pending. Please check your history in a few minutes.');
       }
     } catch (err) {
       console.error('Status check error:', err);
-      setError('Connection timeout. Please check your billing dashboard in a few moments.');
+      setError('Connection timeout. Your payment is being processed. Please check your billing dashboard in a few moments.');
       setStatus('failed');
     }
   };
@@ -63,12 +62,16 @@ const PaymentSuccessPage = () => {
     checkStatus();
   }, []);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const containerVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, scale: 0.9 },
     visible: { 
       opacity: 1, 
-      y: 0,
-      transition: { duration: 0.6, staggerChildren: 0.2 }
+      scale: 1,
+      transition: { duration: 0.5, staggerChildren: 0.1 }
     }
   };
 
@@ -82,29 +85,28 @@ const PaymentSuccessPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-surface-900 overflow-hidden relative">
         <div className="absolute inset-0 bg-surface-900 grid-pattern -z-10" />
         <motion.div
-          animate={{ scale: [1, 1.1, 1] }}
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 360] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="relative"
         >
-          <div className="w-32 h-32 rounded-full border-4 border-primary-500/20 flex items-center justify-center">
-            <Loader2 className="w-12 h-12 text-primary-500 animate-spin" />
+          <div className="w-40 h-40 rounded-full border-8 border-primary-500/10 flex items-center justify-center">
+            <Loader2 className="w-16 h-16 text-primary-500 animate-spin" />
           </div>
-          <div className="absolute inset-0 rounded-full border-4 border-t-accent-500 animate-[spin_3s_linear_infinite]" />
+          <div className="absolute inset-0 rounded-full border-8 border-t-accent-500 animate-[spin_3s_linear_infinite]" />
         </motion.div>
-        <h2 className="text-2xl font-black text-white mt-8 tracking-tight">Verifying Transaction</h2>
-        <p className="text-gray-500 text-sm mt-3 animate-pulse">Establishing secure connection with gateway...</p>
+        <h2 className="text-3xl font-black text-white mt-10 tracking-tight">Securing Transaction</h2>
+        <p className="text-gray-500 text-sm mt-4 font-mono uppercase tracking-[0.3em] animate-pulse">Establishing Gateway Handshake...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-20 px-4 relative overflow-hidden bg-surface-900">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden bg-surface-900">
       <div className="absolute inset-0 bg-surface-900 grid-pattern -z-10" />
       
-      {/* Dynamic Background Accents */}
-      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary-600/10 rounded-full blur-[120px] -z-10 animate-float" />
-      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-accent-500/10 rounded-full blur-[120px] -z-10 animate-float" style={{ animationDelay: '2s' }} />
-
+      {/* Decorative Elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-primary-600/20 blur-[150px] -z-10 rounded-full" />
+      
       <AnimatePresence>
         {status === 'success' ? (
           <motion.div 
@@ -112,89 +114,112 @@ const PaymentSuccessPage = () => {
             variants={containerVariants} 
             initial="hidden" 
             animate="visible"
-            className="w-full max-w-lg z-10"
+            className="w-full max-w-2xl z-10 print:m-0 print:p-0"
           >
-            {/* Header Section */}
-            <div className="text-center mb-8">
+            {/* Success Animation Header */}
+            <div className="text-center mb-10 print:hidden">
               <motion.div 
                 initial={{ scale: 0, rotate: -45 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(34,197,94,0.4)] success-glow"
+                transition={{ type: "spring", bounce: 0.6, duration: 1 }}
+                className="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mx-auto mb-8 shadow-[0_0_60px_rgba(16,185,129,0.4)]"
               >
-                <CheckCircle size={48} className="text-white" />
+                <CheckCircle size={56} className="text-white" />
               </motion.div>
-              <motion.h1 variants={itemVariants} className="text-4xl font-black text-white mb-2 tracking-tight">
-                Payment Success!
-              </motion.h1>
-              <motion.p variants={itemVariants} className="text-gray-400 font-medium">
-                Your payment has been processed successfully.
-              </motion.p>
+              <motion.div variants={itemVariants}>
+                <h1 className="text-5xl font-black text-white mb-3 tracking-tighter leading-none">
+                  Payment Confirmed!
+                </h1>
+                <p className="text-gray-400 text-lg font-medium">
+                  Your government dues have been settled successfully.
+                </p>
+              </motion.div>
             </div>
 
-            {/* Receipt Summary Card */}
-            <motion.div variants={itemVariants} className="glass-panel overflow-hidden border-white/5 shadow-2xl">
-              <div className="p-1 bg-gradient-to-r from-green-500/50 to-emerald-500/50" />
-              <div className="p-8">
-                <div className="space-y-6">
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Amount Paid</span>
-                      <h2 className="text-3xl font-black text-white mt-1">₹ {searchParams.get('amount') || '500.00'}<span className="text-sm font-medium text-gray-500 ml-1">INR</span></h2>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Date</span>
-                      <p className="text-sm font-bold text-white mt-1">{new Date().toLocaleDateString()}</p>
-                    </div>
-                  </div>
+            {/* Receipt Component */}
+            <motion.div 
+              variants={itemVariants} 
+              className="bg-white text-gray-900 rounded-3xl overflow-hidden shadow-2xl print:shadow-none print:rounded-none"
+            >
+              <div className="bg-surface-800 p-8 flex justify-between items-center border-b border-black/10 print:bg-white print:border-b-2">
+                <div>
+                  <h3 className="text-2xl font-black text-white print:text-gray-900">SmartGov Bills</h3>
+                  <p className="text-xs text-gray-400 font-mono tracking-widest print:text-gray-500 uppercase">E-Government Services</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-black text-primary-400 bg-primary-500/10 px-2 py-1 rounded print:hidden uppercase">Receipt Copy</span>
+                  <p className="text-lg font-bold text-white mt-1 print:text-gray-900">{receiptData?.receiptNo || 'RCP-772918'}</p>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4 py-6 border-y border-white/5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-surface-600 flex items-center justify-center">
-                        <Tag size={18} className="text-primary-400" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase">Service</p>
-                        <p className="text-xs font-bold text-white">Electricity Bill</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-surface-600 flex items-center justify-center">
-                        <CreditCard size={18} className="text-accent-400" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase">Method</p>
-                        <p className="text-xs font-bold text-white">Razorpay</p>
-                      </div>
-                    </div>
+              <div className="p-10 space-y-8">
+                <div className="grid grid-cols-2 gap-8">
+                  <div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Billed To</span>
+                    <p className="text-sm font-bold">{receiptData?.payerName || 'Citizen User'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{receiptData?.payerEmail || ''}</p>
                   </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Payment Date</span>
+                    <p className="text-sm font-bold">{new Date(receiptData?.date).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' })}</p>
+                  </div>
+                </div>
 
-                  <div className="flex flex-col gap-2">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Transaction ID</span>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-surface-900 border border-white/5">
-                      <code className="text-xs font-mono text-primary-400 truncate mr-4">
-                        {searchParams.get('payment_id') || 'MOJO_TXN_X82J91'}
-                      </code>
-                      <button className="text-[10px] font-black text-gray-400 hover:text-white uppercase tracking-tighter">Copy</button>
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center">
+                        <Tag size={16} className="text-primary-600" />
+                      </div>
+                      <span className="text-sm font-bold capitalize">{receiptData?.billType || 'Service'} Bill Settlement</span>
+                    </div>
+                    <span className="text-sm font-black">₹{receiptData?.amount?.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center">
+                    <span className="text-lg font-black text-gray-900">Total Amount</span>
+                    <span className="text-2xl font-black text-primary-600">₹{receiptData?.amount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <span>Transaction Details</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <p className="text-[9px] text-gray-400 mb-1">Gateway ID</p>
+                      <p className="text-xs font-mono font-bold truncate">{receiptData?.paymentId || 'PAY-N/A'}</p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <p className="text-[9px] text-gray-400 mb-1">Method</p>
+                      <p className="text-xs font-bold font-mono">RAZORPAY_SECURE</p>
                     </div>
                   </div>
+                </div>
+
+                <div className="text-center pt-6 border-t border-gray-100">
+                  <p className="text-[10px] text-gray-400 font-medium">This is a system-generated document and does not require a signature.</p>
+                  <p className="text-[10px] text-primary-500 font-black mt-1 uppercase tracking-tighter">Support: digital-help@smartgov.gov.in</p>
                 </div>
               </div>
             </motion.div>
 
             {/* Bottom Actions */}
-            <motion.div variants={itemVariants} className="mt-8 flex flex-col gap-4">
-              <Link to="/dashboard" className="btn-primary w-full flex items-center justify-center gap-2 group">
-                Back to Dashboard <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            <motion.div variants={itemVariants} className="mt-8 flex gap-4 print:hidden">
+              <Link to="/dashboard" className="btn-primary flex-1 flex items-center justify-center gap-2 group py-4">
+                <History size={18} /> Dashboard
               </Link>
-              <button className="btn-secondary w-full flex items-center justify-center gap-2">
-                <Download size={18} /> Download Receipt
+              <button 
+                onClick={handlePrint}
+                className="bg-white text-gray-900 hover:bg-gray-100 font-black text-sm px-8 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xl"
+              >
+                <Download size={18} /> Print 
               </button>
             </motion.div>
-
-            <motion.p variants={itemVariants} className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest mt-8">
-              Secured by SmartGov Global Payments
-            </motion.p>
           </motion.div>
         ) : (
           <motion.div 
@@ -207,22 +232,22 @@ const PaymentSuccessPage = () => {
               initial={{ scale: 0 }} 
               animate={{ scale: 1 }} 
               transition={{ type: "spring", bounce: 0.5 }}
-              className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center mx-auto mb-8 shadow-2xl"
+              className="w-28 h-28 rounded-full bg-gradient-to-br from-red-500 to-rose-700 flex items-center justify-center mx-auto mb-10 shadow-[0_0_50px_rgba(225,29,72,0.3)]"
             >
-              <XCircle size={48} className="text-white" />
+              <XCircle size={56} className="text-white" />
             </motion.div>
-            <h1 className="text-3xl font-black text-white mb-3 tracking-tight">Transaction Failed</h1>
-            <p className="text-gray-400 mb-8 max-w-xs mx-auto">{error || 'Something went wrong while processing your payment.'}</p>
+            <h1 className="text-4xl font-black text-white mb-4 tracking-tighter leading-none">Transaction Alert</h1>
+            <p className="text-gray-400 mb-10 text-lg leading-relaxed">{error || 'Handshake with payment gateway failed. Please verify your transaction status in dashboard.'}</p>
             
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               <button 
                 onClick={checkStatus} 
-                className="btn-primary w-full flex justify-center items-center gap-2"
+                className="btn-primary w-full py-4 flex justify-center items-center gap-2"
               >
-                <RefreshCw size={18} /> Retry Verification
+                <RefreshCw size={20} /> Force Re-verify
               </button>
-              <Link to="/dashboard" className="btn-secondary w-full flex justify-center items-center gap-2">
-                Go back & try again <History size={18} />
+              <Link to="/dashboard" className="text-gray-500 hover:text-white font-bold text-sm underline underline-offset-8 decoration-primary-500/30">
+                Cancel & Return to Dashboard
               </Link>
             </div>
           </motion.div>
