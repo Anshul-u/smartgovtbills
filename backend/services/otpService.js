@@ -18,21 +18,21 @@ const sendOTP = async (email, otp, phone = '') => {
   console.log(`  (Delivery: Primary=Brevo, Optional=Nodemailer)`);
   console.log(`========================================\n`);
 
-  // 1. Try Brevo (Primary)
-  console.log(`[OTP] Attempting delivery via Brevo (Primary)...`);
-  const brevoSuccess = await sendBrevoOTP(email, otp);
-  
-  if (brevoSuccess) {
-    console.log(`[OTP] Brevo delivery successful.`);
-    return true;
-  }
-
-  // 2. Fallback to Nodemailer if Brevo fails
-  console.log(`[OTP] ⚠️ Brevo failed. Falling back to Nodemailer (Optional)...`);
+  // 1. Try Nodemailer (Primary now since token is fixed)
+  console.log(`[OTP] Attempting delivery via Nodemailer (Primary)...`);
   const nodemailerSuccess = await sendNodemailerOTP(email, otp);
   
   if (nodemailerSuccess) {
     console.log(`[OTP] Nodemailer delivery successful.`);
+    return true;
+  }
+
+  // 2. Fallback to Brevo if Nodemailer fails
+  console.log(`[OTP] ⚠️ Nodemailer failed. Falling back to Brevo (Secondary)...`);
+  const brevoSuccess = await sendBrevoOTP(email, otp);
+  
+  if (brevoSuccess) {
+    console.log(`[OTP] Brevo delivery successful.`);
   } else {
     console.error(`[OTP] ❌ Both OTP providers failed.`);
   }

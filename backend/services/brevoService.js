@@ -111,13 +111,14 @@ const sendWelcomeEmail = async (email, name) => {
     );
 
     console.log(`[Brevo] ✓ Welcome email sent to ${email}: messageId ${response.data.messageId}`);
-    return false;
+    return true;
   } catch (error) {
     if (error.response) {
       console.error(`[Brevo] ❌ Failed to send welcome email: ${JSON.stringify(error.response.data)}`);
     } else {
       console.error(`[Brevo] ❌ Failed to send welcome email: ${error.message}`);
     }
+    return false;
   }
 };
 
