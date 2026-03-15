@@ -15,7 +15,7 @@ const sendOTP = async (email, otp, phone = '') => {
   // Always log to console as a developer fallback
   console.log(`\n========================================`);
   console.log(`  OTP for ${email} (${phone}): ${otp}`);
-  console.log(`  (Delivery: Primary=Brevo, Optional=Nodemailer)`);
+  console.log(`  (Delivery: Primary=Nodemailer, Fallback=Brevo)`);
   console.log(`========================================\n`);
 
   // 1. Try Nodemailer (Primary now since token is fixed)
