@@ -210,7 +210,7 @@ const DashboardPage = () => {
               )}
               <div className="mt-4 pt-4 border-t border-white/5">
                 <span className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">
-                  System v1.2.0 (Razorpay Active)
+                  Build: 2026.03.15.14.05 (Razorpay Active)
                 </span>
               </div>
             </motion.div>

@@ -4,7 +4,13 @@ import axios from 'axios';
 export const AuthContext = createContext();
 
 // Setup axios defaults
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const prodBackend = "https://smartgovtbills-backend.onrender.com/api";
+const localBackend = "http://localhost:5000/api";
+
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || (isLocal ? localBackend : prodBackend);
+
+console.log(`[System] API Base URL: ${axios.defaults.baseURL}`);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
