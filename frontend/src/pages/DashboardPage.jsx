@@ -57,6 +57,9 @@ const DashboardPage = () => {
     setPayingBillId(billId);
     try {
       console.log(`Initiating Razorpay payment for bill:`, billId);
+      if (!bill.totalAmount || bill.totalAmount <= 0) {
+        throw new Error('Invalid bill amount. Please re-calculate.');
+      }
       const { data } = await axios.post('/payments/create-order', { billId });
       
       if (!data.orderId) {

@@ -20,21 +20,19 @@ const createOrder = async (amount, receipt) => {
 
   try {
     const options = {
-      amount: Math.round(Number(amount) * 100), // convert to paise and ensure it's a number
+      amount: Math.round(Number(amount) * 100), // convert to paise
       currency: 'INR',
       receipt: String(receipt),
-      payment_capture: 1 // Auto capture
     };
 
-    console.log(`[Razorpay] Creating order for ₹${amount} (${options.amount} paise)`);
+    console.log(`[Razorpay] Attempting to create order:`, JSON.stringify(options));
     const order = await razorpay.orders.create(options);
     console.log(`[Razorpay] Order created successfully: ${order.id}`);
     return order;
   } catch (error) {
-    console.error('[Razorpay] Create Order Error:', error);
-    // Provide more specific error message from Razorpay if available
-    const errorMessage = error.error ? error.error.description : error.message;
-    throw new Error(`Razorpay Error: ${errorMessage}`);
+    console.error('[Razorpay] Create Order Error Details:', JSON.stringify(error));
+    const errorMessage = error.description || error.message || 'Razorpay API rejected the order';
+    throw new Error(errorMessage);
   }
 };
 
