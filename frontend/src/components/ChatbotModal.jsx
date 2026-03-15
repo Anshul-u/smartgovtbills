@@ -12,8 +12,7 @@ const quickReplies = [
 ];
 
 const ChatbotModal = () => {
-  const { user } = useContext(AuthContext);
-  const [isOpen, setIsOpen] = useState(false);
+  const { user, isChatOpen, setIsChatOpen } = useContext(AuthContext);
   const [messages, setMessages] = useState([
     { role: 'bot', text: "👋 Hello! I'm **SmartGov AI**. I can help you calculate bills, understand charges, and navigate payments. What would you like to know?" },
   ]);
@@ -27,8 +26,8 @@ const ChatbotModal = () => {
   }, [messages, isTyping]);
 
   useEffect(() => {
-    if (isOpen) inputRef.current?.focus();
-  }, [isOpen]);
+    if (isChatOpen) inputRef.current?.focus();
+  }, [isChatOpen]);
 
   const sendMessage = async (text) => {
     if (!text.trim()) return;
@@ -76,12 +75,12 @@ const ChatbotModal = () => {
     <>
       {/* Floating Button */}
       <AnimatePresence>
-        {!isOpen && (
+        {!isChatOpen && (
           <motion.button
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
-            onClick={() => setIsOpen(true)}
+            onClick={() => setIsChatOpen(true)}
             className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-accent-400 text-white flex items-center justify-center shadow-2xl cursor-pointer z-50 hover:scale-110 transition-transform"
             style={{ boxShadow: '0 0 30px rgba(113, 56, 218, 0.4)' }}
           >
@@ -92,7 +91,7 @@ const ChatbotModal = () => {
 
       {/* Chat Window */}
       <AnimatePresence>
-        {isOpen && (
+        {isChatOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -120,7 +119,7 @@ const ChatbotModal = () => {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="p-2 text-gray-500 hover:text-white rounded-xl hover:bg-surface-600 transition-colors">
+              <button onClick={() => setIsChatOpen(false)} className="p-2 text-gray-500 hover:text-white rounded-xl hover:bg-surface-600 transition-colors">
                 <X size={18} />
               </button>
             </div>

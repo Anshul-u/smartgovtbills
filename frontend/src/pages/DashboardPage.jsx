@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const DashboardPage = () => {
-  const { user, setUser } = useContext(AuthContext);
+  const { user, setUser, setIsChatOpen } = useContext(AuthContext);
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
@@ -478,7 +478,12 @@ const DashboardPage = () => {
 
               <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary-500/5 to-accent-400/5 border border-white/5 text-center">
                 <p className="text-xs text-gray-500 italic mb-2">Still have questions?</p>
-                <button className="text-xs font-bold text-primary-400 hover:text-white transition-colors uppercase tracking-widest">Contact Support 24/7</button>
+                <button 
+                  onClick={() => setIsChatOpen(true)}
+                  className="text-xs font-bold text-primary-400 hover:text-white transition-colors uppercase tracking-widest cursor-pointer"
+                >
+                  Contact Support 24/7
+                </button>
               </div>
             </motion.div>
           </div>

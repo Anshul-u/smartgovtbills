@@ -48,8 +48,10 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout, isChatOpen, setIsChatOpen }}>
       {children}
     </AuthContext.Provider>
   );
