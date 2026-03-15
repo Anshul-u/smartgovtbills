@@ -17,25 +17,18 @@ const TransactionSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    default: 'phonepe',
+    enum: ['razorpay', 'stripe', 'cod'],
+    default: 'razorpay',
   },
   paymentStatus: {
     type: String,
     enum: ['success', 'failed', 'pending'],
     default: 'pending',
   },
-  phonePeTransactionId: {
-    type: String,
-  },
-  phonePeMerchantId: {
-    type: String,
-  },
-  phonePeState: {
-    type: String,
-  },
-  receiptUrl: {
-    type: String,
-  },
+  razorpayOrderId: String,
+  razorpayPaymentId: String,
+  razorpaySignature: String,
+  receiptUrl: String,
   createdAt: {
     type: Date,
     default: Date.now,

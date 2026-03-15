@@ -44,18 +44,68 @@ const DashboardPage = () => {
 
   const [payingBillId, setPayingBillId] = useState(null);
 
-  const handlePay = async (billId) => {
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => { document.body.removeChild(script); };
+  }, []);
+
+  const handlePay = async (billId, bill) => {
     setPayingBillId(billId);
     try {
-      console.log('Initiating PhonePe payment for bill:', billId);
+      console.log(`Initiating Razorpay payment for bill:`, billId);
       const { data } = await axios.post('/payments/create-order', { billId });
       
-      if (data.redirectUrl) {
-        console.log('Redirecting to PhonePe:', data.redirectUrl);
-        window.location.href = data.redirectUrl;
-      } else {
-        throw new Error('Payment initiation failed');
+      if (!data.orderId) {
+        throw new Error('Failed to create order');
       }
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SRQMvZLDR2zpyI',
+        amount: data.amount,
+        currency: data.currency,
+        name: 'SmartGov Bills',
+        description: `${bill.billType.toUpperCase()} Bill Payment`,
+        order_id: data.orderId,
+        handler: async (response) => {
+          try {
+            const verifyRes = await axios.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verifyRes.data.success) {
+              window.location.href = `/payment-success?txn=${data.transactionId}&amount=${bill.totalAmount}`;
+            } else {
+              alert('Payment verification failed');
+            }
+          } catch (err) {
+            console.error('Verification error:', err);
+            alert('Something went wrong during verification');
+          }
+        },
+        prefill: {
+          name: '', // Will be filled by Razorpay if user is logged in
+          email: '',
+          contact: ''
+        },
+        theme: {
+          color: '#7c3aed'
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        console.error('Payment failed:', response.error);
+        alert(`Payment Failed: ${response.error.description}`);
+      });
+      rzp.open();
+      setPayingBillId(null);
+
     } catch (error) {
       console.error('Payment error:', error);
       alert(error.response?.data?.message || 'Payment failed. Please try again.');
@@ -244,7 +294,7 @@ const DashboardPage = () => {
                           <td className="px-6 py-5 text-right">
                             {bill.status === 'pending' ? (
                               <button 
-                                onClick={() => handlePay(bill._id)}
+                                onClick={() => handlePay(bill._id, bill)}
                                 disabled={payingBillId === bill._id}
                                 className="btn-primary text-xs py-2 px-5 disabled:opacity-50"
                               >

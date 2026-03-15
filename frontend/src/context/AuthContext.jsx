@@ -4,7 +4,7 @@ import axios from 'axios';
 export const AuthContext = createContext();
 
 // Setup axios defaults
-axios.defaults.baseURL = "https://smartgovtbills-backend.onrender.com/api";
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

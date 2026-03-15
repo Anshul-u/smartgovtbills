@@ -4,18 +4,12 @@ const uniqid = require('uniqid');
 const Bill = require('../models/Bill');
 const Transaction = require('../models/Transaction');
 const { sendPaymentReceipt } = require('../services/emailService');
-
-const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
-const SALT_KEY = process.env.PHONEPE_SALT_KEY;
-const SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
-const PHONEPE_API_URL = process.env.PHONEPE_API_URL;
-const PHONEPE_STATUS_URL = process.env.PHONEPE_STATUS_URL;
+const razorpay = require('../services/razorpayService');
 
 /**
- * @desc    Initiate PhonePe Payment (Redirect Flow)
- * @route   POST /api/payments/initiate
+ * @desc    Create Razorpay Order
  */
-const initiatePhonePePayment = async (req, res) => {
+const createOrder = async (req, res) => {
   try {
     const { billId } = req.body;
     const bill = await Bill.findById(billId);
@@ -28,129 +22,81 @@ const initiatePhonePePayment = async (req, res) => {
       return res.status(400).json({ message: 'Bill is already paid' });
     }
 
-    const merchantTransactionId = uniqid('MTID');
-    
+    const order = await razorpay.createOrder(bill.totalAmount, billId);
+
     // Create pending transaction
     const transaction = await Transaction.create({
       user: req.user._id,
       bill: bill._id,
       amount: bill.totalAmount,
-      paymentMethod: 'phonepe',
+      paymentMethod: 'razorpay',
       paymentStatus: 'pending',
-      phonePeTransactionId: merchantTransactionId,
-      phonePeMerchantId: MERCHANT_ID,
+      razorpayOrderId: order.id,
     });
 
-    const payload = {
-      merchantId: MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      merchantUserId: req.user._id.toString(),
-      amount: Math.round(bill.totalAmount * 100), // in paise
-      redirectUrl: `${process.env.FRONTEND_URL}/payment-success?transactionId=${transaction._id}`,
-      redirectMode: 'REDIRECT',
-      callbackUrl: `${process.env.BACKEND_URL}/api/payments/webhook`,
-      mobileNumber: req.user.phone ? req.user.phone.replace('+91', '') : '9999999999',
-      paymentInstrument: {
-        type: 'PAY_PAGE'
-      }
-    };
-
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const fullURL = base64Payload + "/pg/v1/pay" + SALT_KEY;
-    const checksum = crypto.createHash('sha256').update(fullURL).digest('hex') + "###" + SALT_INDEX;
-
-    console.log('[PhonePe] Initiating payment for:', merchantTransactionId);
-
-    const response = await axios.post(PHONEPE_API_URL, 
-      { request: base64Payload },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-VERIFY': checksum,
-          'accept': 'application/json'
-        }
-      }
-    );
-
-    if (response.data.success) {
-      const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
-      res.json({
-        success: true,
-        redirectUrl,
-        transactionId: transaction._id
-      });
-    } else {
-      throw new Error(response.data.message || 'PhonePe initiation failed');
-    }
+    res.json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      transactionId: transaction._id
+    });
 
   } catch (error) {
-    console.error('[PhonePe] Init Error:', error.response?.data || error.message);
-    res.status(500).json({ 
-      message: 'Payment initiation failed', 
-      error: error.response?.data?.message || error.message 
-    });
+    console.error('[Razorpay] Create Order Error:', error.message);
+    res.status(500).json({ message: 'Razorpay order creation failed', error: error.message });
   }
 };
 
 /**
- * @desc    Check PhonePe Payment Status
- * @route   GET /api/payments/status/:transactionId
+ * @desc    Verify Razorpay Payment
  */
-const checkPhonePeStatus = async (req, res) => {
+const verifyPayment = async (req, res) => {
   try {
-    const transaction = await Transaction.findById(req.params.transactionId).populate('bill');
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    
+    // Verify signature
+    const isValid = razorpay.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    
+    if (!isValid) {
+      return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+    }
+
+    // Find transaction by razorpayOrderId
+    const transaction = await Transaction.findOne({ razorpayOrderId: razorpay_order_id }).populate('bill');
     
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
-    const merchantTransactionId = transaction.phonePeTransactionId;
-    const finalURL = `/pg/v1/status/${MERCHANT_ID}/${merchantTransactionId}` + SALT_KEY;
-    const checksum = crypto.createHash('sha256').update(finalURL).digest('hex') + "###" + SALT_INDEX;
-
-    const options = {
-      method: 'GET',
-      url: `${PHONEPE_STATUS_URL}/${MERCHANT_ID}/${merchantTransactionId}`,
-      headers: {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'X-MERCHANT-ID': MERCHANT_ID
-      }
-    };
-
-    const response = await axios.request(options);
-    console.log('[PhonePe] Status Check for:', merchantTransactionId, response.data.code);
-
-    if (response.data.success && response.data.code === 'PAYMENT_SUCCESS') {
-      transaction.paymentStatus = 'success';
-      transaction.phonePeState = 'COMPLETED';
-      await transaction.save();
-
-      // Update bill
-      const bill = await Bill.findById(transaction.bill);
-      if (bill) {
-        bill.status = 'paid';
-        await bill.save();
-        
-        // Send receipt
-        sendPaymentReceipt(req.user.email, {
-          billType: bill.billType,
-          amount: transaction.amount,
-          transactionId: transaction._id,
-        });
-      }
-
-      res.json({ success: true, status: 'success' });
-    } else {
-      transaction.paymentStatus = 'failed';
-      await transaction.save();
-      res.json({ success: false, status: 'failed', message: response.data.message });
+    if (transaction.paymentStatus === 'success') {
+      return res.json({ success: true, status: 'success' });
     }
 
+    // Update transaction
+    transaction.paymentStatus = 'success';
+    transaction.razorpayPaymentId = razorpay_payment_id;
+    transaction.razorpaySignature = razorpay_signature;
+    await transaction.save();
+
+    // Update bill
+    const bill = await Bill.findById(transaction.bill);
+    if (bill) {
+      bill.status = 'paid';
+      await bill.save();
+      
+      sendPaymentReceipt(req.user.email, {
+        billType: bill.billType,
+        amount: transaction.amount,
+        transactionId: transaction._id,
+      });
+    }
+
+    res.json({ success: true, status: 'success' });
+
   } catch (error) {
-    console.error('[PhonePe] Status Check Error:', error.response?.data || error.message);
-    res.status(500).json({ message: 'Status verification failed' });
+    console.error('[Razorpay] Verification Error:', error.message);
+    res.status(500).json({ message: 'Verification failed' });
   }
 };
 
@@ -188,7 +134,7 @@ const generateReceipt = async (req, res) => {
       payerEmail: transaction.user?.email || '',
       billType: transaction.bill?.billType || 'N/A',
       amount: transaction.amount,
-      paymentId: transaction.phonePeTransactionId,
+      paymentId: transaction.razorpayPaymentId,
       status: transaction.paymentStatus,
     };
 
@@ -199,8 +145,8 @@ const generateReceipt = async (req, res) => {
 };
 
 module.exports = {
-  initiatePhonePePayment,
-  checkPhonePeStatus,
+  createOrder,
+  verifyPayment,
   getPaymentHistory,
   generateReceipt,
 };
