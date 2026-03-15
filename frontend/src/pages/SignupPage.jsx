@@ -202,10 +202,10 @@ const SignupPage = () => {
             <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-400 rounded-2xl flex items-center justify-center mx-auto mb-4 neon-glow-purple">
-                  <Phone size={28} className="text-white" />
+                  <Mail size={28} className="text-white" />
                 </div>
-                <h2 className="text-2xl font-black text-white tracking-tight mb-2">Verify Phone</h2>
-                <p className="text-gray-500 text-sm">Enter the OTP sent to {phone}</p>
+                <h2 className="text-2xl font-black text-white tracking-tight mb-2">Verify Email</h2>
+                <p className="text-gray-500 text-sm">Enter the OTP sent to {email}</p>
                 {serverOtp && (
                   <p className="text-primary-400 text-xs mt-2 font-mono bg-primary-500/10 px-3 py-1 rounded-full inline-block">
                     Dev OTP: {serverOtp}
