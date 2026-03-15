@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Download, TrendingUp, UserCircle, Wallet, Camera, Zap, Droplets, Home, Calculator, ArrowRight, Receipt } from 'lucide-react';
+import { Download, TrendingUp, UserCircle, Wallet, Camera, Zap, Droplets, Home, Calculator, ArrowRight, Receipt, CheckCircle, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -183,10 +183,10 @@ const DashboardPage = () => {
     }
   };
 
-  const pendingBills = bills.filter(b => b.status === 'pending');
-  const paidBills = bills.filter(b => b.status === 'paid');
-  const totalPendingAmount = pendingBills.reduce((sum, b) => sum + b.totalAmount, 0);
-  const totalPaidAmount = paidBills.reduce((sum, b) => sum + b.totalAmount, 0);
+  const pendingBills = (bills || []).filter(b => b && b.status === 'pending');
+  const paidBills = (bills || []).filter(b => b && b.status === 'paid');
+  const totalPendingAmount = pendingBills.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  const totalPaidAmount = paidBills.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -264,9 +264,9 @@ const DashboardPage = () => {
             {/* Stats Row */}
             <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{delay: 0.2}} className="grid grid-cols-3 gap-4">
               {[
-                { icon: Zap, label: 'Electricity', color: 'from-amber-500 to-orange-600', count: bills.filter(b => b.billType === 'electricity').length },
-                { icon: Droplets, label: 'Water', color: 'from-accent-400 to-accent-600', count: bills.filter(b => b.billType === 'water').length },
-                { icon: Home, label: 'Property', color: 'from-primary-500 to-primary-700', count: bills.filter(b => b.billType === 'property').length },
+                { icon: Zap, label: 'Electricity', color: 'from-amber-500 to-orange-600', count: (bills || []).filter(b => b?.billType === 'electricity').length },
+                { icon: Droplets, label: 'Water', color: 'from-accent-400 to-accent-600', count: (bills || []).filter(b => b?.billType === 'water').length },
+                { icon: Home, label: 'Property', color: 'from-primary-500 to-primary-700', count: (bills || []).filter(b => b?.billType === 'property').length },
               ].map(({ icon: Icon, label, color, count }) => (
                 <div key={label} className="glass-panel-light p-5 text-center">
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mx-auto mb-3`}>
@@ -289,7 +289,7 @@ const DashboardPage = () => {
                     <p className="text-xs text-gray-500 mt-1">Settle your outstanding government dues</p>
                   </div>
                   <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md">
-                    {bills.filter(b => b.status === 'pending').length} Action Required
+                    {(bills || []).filter(b => b?.status === 'pending').length} Action Required
                   </span>
                 </div>
               </div>
@@ -301,14 +301,14 @@ const DashboardPage = () => {
                       [...Array(2)].map((_, i) => (
                         <tr key={i}><td colSpan="5" className="p-4"><div className="skeleton h-12 w-full" /></td></tr>
                       ))
-                    ) : bills.filter(b => b.status === 'pending').length === 0 ? (
+                    ) : (bills || []).filter(b => b?.status === 'pending').length === 0 ? (
                       <tr><td colSpan="5" className="p-12 text-center text-gray-500">
                         <CheckCircle size={40} className="mx-auto mb-3 text-green-500/50" />
                         <p className="font-bold text-gray-400">All caught up!</p>
                         <p className="text-xs mt-1">No pending bills at the moment.</p>
                       </td></tr>
                     ) : (
-                      bills.filter(b => b.status === 'pending').map((bill) => (
+                      (bills || []).filter(b => b?.status === 'pending').map((bill) => (
                         <tr key={bill._id} className="hover:bg-surface-700/30 transition-colors">
                           <td className="px-6 py-5 whitespace-nowrap w-32">
                             <div className="text-sm font-medium text-gray-300">{new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
@@ -372,13 +372,13 @@ const DashboardPage = () => {
                       [...Array(2)].map((_, i) => (
                         <tr key={i}><td colSpan="5" className="p-4"><div className="skeleton h-12 w-full" /></td></tr>
                       ))
-                    ) : bills.filter(b => b.status === 'paid').length === 0 ? (
+                    ) : (bills || []).filter(b => b?.status === 'paid').length === 0 ? (
                       <tr><td colSpan="5" className="p-10 text-center text-gray-600">
                         <History size={32} className="mx-auto mb-3 opacity-20" />
                         <p className="text-sm font-medium">No previous transactions found.</p>
                       </td></tr>
                     ) : (
-                      bills.filter(b => b.status === 'paid').map((bill) => (
+                      (bills || []).filter(b => b?.status === 'paid').map((bill) => (
                         <tr key={bill._id} className="hover:bg-surface-700/20 transition-colors group">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-400">{new Date(bill.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
