@@ -42,7 +42,7 @@ const sendOTPEmail = async (email, otp) => {
       {
         sender: { name: SENDER_NAME, email: SENDER_EMAIL },
         to: [{ email: email }],
-        subject: \`Your SmartGov Verification Code: \${otp} 🛡️\`,
+        subject: `Your SmartGov Verification Code: ${otp} 🛡️`,
         htmlContent: htmlContent,
       },
       {
@@ -54,14 +54,15 @@ const sendOTPEmail = async (email, otp) => {
       }
     );
 
-    console.log(\`[Brevo] ✓ OTP email sent to \${email}: messageId \${response.data.messageId}\`);
-    return response.data;
+    console.log(`[Brevo] ✓ OTP email sent to ${email}: messageId ${response.data.messageId}`);
+    return true;
   } catch (error) {
     if (error.response) {
-      console.error(\`[Brevo] ❌ Failed to send OTP email: \${JSON.stringify(error.response.data)}\`);
+      console.error(`[Brevo] ❌ Failed to send OTP email: ${JSON.stringify(error.response.data)}`);
     } else {
-      console.error(\`[Brevo] ❌ Failed to send OTP email: \${error.message}\`);
+      console.error(`[Brevo] ❌ Failed to send OTP email: ${error.message}`);
     }
+    return false;
   }
 };
 
@@ -109,13 +110,13 @@ const sendWelcomeEmail = async (email, name) => {
       }
     );
 
-    console.log(\`[Brevo] ✓ Welcome email sent to \${email}: messageId \${response.data.messageId}\`);
-    return response.data;
+    console.log(`[Brevo] ✓ Welcome email sent to ${email}: messageId ${response.data.messageId}`);
+    return false;
   } catch (error) {
     if (error.response) {
-      console.error(\`[Brevo] ❌ Failed to send welcome email: \${JSON.stringify(error.response.data)}\`);
+      console.error(`[Brevo] ❌ Failed to send welcome email: ${JSON.stringify(error.response.data)}`);
     } else {
-      console.error(\`[Brevo] ❌ Failed to send welcome email: \${error.message}\`);
+      console.error(`[Brevo] ❌ Failed to send welcome email: ${error.message}`);
     }
   }
 };
@@ -166,7 +167,7 @@ const sendPaymentReceipt = async (email, paymentData) => {
       {
         sender: { name: 'SmartGov Payments', email: process.env.BREVO_SENDER_EMAIL || 'payments@smartgov.com' },
         to: [{ email: email }],
-        subject: \`Payment Receipt: \${paymentData.billType} Bill - ₹\${paymentData.amount} 💳\`,
+        subject: `Payment Receipt: ${paymentData.billType} Bill - ₹${paymentData.amount} 💳`,
         htmlContent: htmlContent,
       },
       {
@@ -178,14 +179,15 @@ const sendPaymentReceipt = async (email, paymentData) => {
       }
     );
 
-    console.log(\`[Brevo] ✓ Receipt sent to \${email}: messageId \${response.data.messageId}\`);
-    return response.data;
+    console.log(`[Brevo] ✓ Receipt sent to ${email}: messageId ${response.data.messageId}`);
+    return true;
   } catch (error) {
     if (error.response) {
-      console.error(\`[Brevo] ❌ Failed to send receipt: \${JSON.stringify(error.response.data)}\`);
+      console.error(`[Brevo] ❌ Failed to send receipt: ${JSON.stringify(error.response.data)}`);
     } else {
-      console.error(\`[Brevo] ❌ Failed to send receipt: \${error.message}\`);
+      console.error(`[Brevo] ❌ Failed to send receipt: ${error.message}`);
     }
+    return false;
   }
 };
 
