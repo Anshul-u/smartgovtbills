@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Download, TrendingUp, UserCircle, Wallet, Camera, Zap, Droplets, Home, Calculator, ArrowRight, Receipt, CheckCircle, History } from 'lucide-react';
+import { Download, TrendingUp, UserCircle, Wallet, Camera, Zap, Droplets, Home, Calculator, ArrowRight, Receipt, CheckCircle, History, HelpCircle, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -192,6 +192,31 @@ const DashboardPage = () => {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
+
+  const [activeFaq, setActiveFaq] = useState(null);
+
+  const faqs = [
+    {
+      q: "How do I pay my pending bills?",
+      a: "You can pay easily using Razorpay. Just click the 'Pay Dues' button on any pending bill, select your preferred payment method (UPI, Card, or Netbanking), and complete the transaction."
+    },
+    {
+      q: "Is my payment safe and secure?",
+      a: "Yes, absolutely. We use Razorpay’s industry-leading encrypted gateway to process all transactions. Your sensitive financial data is never stored on our servers."
+    },
+    {
+      q: "How can I download my payment receipt?",
+      a: "Once a payment is successfully completed, the bill moves to the 'Payment History' section. You can click the download icon next to the transaction to view and print your receipt."
+    },
+    {
+      q: "What if my payment fails but money is deducted?",
+      a: "Don't worry. If money is deducted but the status hasn't updated, Razorpay's system will usually settle it within 24 hours. If not, a refund is automatically initiated within 5-7 working days."
+    },
+    {
+      q: "Are there any discounts for Senior Citizens?",
+      a: "Yes! If you are registered as a Senior Citizen, a 10% discount is automatically applied to all your government utility bills (Electricity, Water, Property Tax) during the calculation phase."
+    }
+  ];
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-surface-900 pt-8 pb-20">
@@ -411,6 +436,49 @@ const DashboardPage = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </motion.div>
+
+            {/* FAQ Section */}
+            <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{delay: 0.4}} className="glass-panel p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400">
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white uppercase tracking-tight">Need Help?</h2>
+                  <p className="text-xs text-gray-500 font-medium">Commonly asked questions</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {faqs.map((faq, index) => (
+                  <div key={index} className={`rounded-2xl border transition-all duration-300 ${activeFaq === index ? 'bg-surface-800 border-primary-500/30' : 'bg-surface-800/40 border-white/5 hover:border-white/10'}`}>
+                    <button 
+                      onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                      className="w-full px-5 py-4 flex items-center justify-between text-left"
+                    >
+                      <span className={`text-sm font-bold transition-colors ${activeFaq === index ? 'text-white' : 'text-gray-400'}`}>{faq.q}</span>
+                      <ChevronDown size={18} className={`text-gray-500 transition-transform duration-300 ${activeFaq === index ? 'rotate-180 text-primary-400' : ''}`} />
+                    </button>
+                    {activeFaq === index && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: 'auto', opacity: 1 }} 
+                        className="px-5 pb-5 overflow-hidden"
+                      >
+                        <p className="text-sm text-gray-400 leading-relaxed font-medium">
+                          {faq.a}
+                        </p>
+                      </motion.div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary-500/5 to-accent-400/5 border border-white/5 text-center">
+                <p className="text-xs text-gray-500 italic mb-2">Still have questions?</p>
+                <button className="text-xs font-bold text-primary-400 hover:text-white transition-colors uppercase tracking-widest">Contact Support 24/7</button>
               </div>
             </motion.div>
           </div>
