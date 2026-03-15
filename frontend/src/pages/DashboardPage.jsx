@@ -56,14 +56,20 @@ const DashboardPage = () => {
   const handlePay = async (billId, bill) => {
     setPayingBillId(billId);
     try {
-      console.log(`Initiating Razorpay payment for bill:`, billId);
+      console.log(`[Frontend] Initiating Razorpay flow for bill:`, billId);
       if (!bill.totalAmount || bill.totalAmount <= 0) {
         throw new Error('Invalid bill amount. Please re-calculate.');
       }
+      
       const { data } = await axios.post('/payments/create-order', { billId });
+      console.log('[Frontend] Backend created order:', data.orderId);
       
       if (!data.orderId) {
-        throw new Error('Failed to create order');
+        throw new Error('Server failed to provide a Razorpay Order ID');
+      }
+
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK not loaded. Please refresh the page and try again.');
       }
 
       const options = {
@@ -74,6 +80,7 @@ const DashboardPage = () => {
         description: `${bill.billType.toUpperCase()} Bill Payment`,
         order_id: data.orderId,
         handler: async (response) => {
+          console.log('[Frontend] Payment successful in modal, verifying...');
           try {
             const verifyRes = await axios.post('/payments/verify', {
               razorpay_order_id: response.razorpay_order_id,
@@ -82,35 +89,43 @@ const DashboardPage = () => {
             });
 
             if (verifyRes.data.success) {
+              console.log('[Frontend] Verification success, redirecting...');
               window.location.href = `/payment-success?txn=${data.transactionId}&amount=${bill.totalAmount}`;
             } else {
-              alert('Payment verification failed');
+              throw new Error(verifyRes.data.message || 'Signature verification failed');
             }
           } catch (err) {
-            console.error('Verification error:', err);
-            alert('Something went wrong during verification');
+            console.error('[Frontend] Verification Error:', err);
+            alert(`Payment Success but Verification Failed: ${err.response?.data?.message || err.message}`);
           }
         },
         prefill: {
-          name: '', // Will be filled by Razorpay if user is logged in
-          email: '',
-          contact: ''
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || ''
         },
         theme: {
           color: '#7c3aed'
+        },
+        modal: {
+          ondismiss: function() {
+            setPayingBillId(null);
+            console.log('[Frontend] Payment modal closed by user');
+          }
         }
       };
 
+      console.log('[Frontend] Opening Razorpay modal...');
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response) {
-        console.error('Payment failed:', response.error);
-        alert(`Payment Failed: ${response.error.description}`);
+        console.error('[Frontend] Modal payment failed:', response.error);
+        alert(`Payment Error: ${response.error.description} (Code: ${response.error.code})`);
       });
       rzp.open();
-      setPayingBillId(null);
+      // No setPayingBillId(null) here, we wait for handler or ondismiss
 
     } catch (error) {
-      console.error('Payment initiation error:', error);
+      console.error('[Frontend] handlePay Error:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error occurred';
       alert(`Payment Initiation Failed: ${errorMessage}`);
       setPayingBillId(null);

@@ -43,11 +43,12 @@ const createOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Razorpay] Create Order Failed Controller:', error.message);
+    console.error('[Razorpay Controller] Order creation failed:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to initiate payment', 
-      error: error.message 
+      message: 'Server failed to initiate Razorpay order', 
+      error: error.message,
+      details: error.stack
     });
   }
 };
