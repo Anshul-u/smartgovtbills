@@ -107,8 +107,9 @@ const DashboardPage = () => {
       setPayingBillId(null);
 
     } catch (error) {
-      console.error('Payment error:', error);
-      alert(error.response?.data?.message || 'Payment failed. Please try again.');
+      console.error('Payment initiation error:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error occurred';
+      alert(`Payment Initiation Failed: ${errorMessage}`);
       setPayingBillId(null);
     }
   };

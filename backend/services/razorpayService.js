@@ -1,28 +1,40 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
+// Initializing Razorpay instance with environment variables
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
+  key_id: process.env.RAZORPAY_KEY_ID || '',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
 });
 
 /**
  * Create a Razorpay Order
  * @param {number} amount - Amount in INR
- * @param {string} receipt - Unique receipt ID
+ * @param {string} receipt - Unique receipt ID (billId)
  */
 const createOrder = async (amount, receipt) => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.error('[Razorpay] ERROR: API Keys are missing in .env');
+    throw new Error('Razorpay API keys are not configured on the server.');
+  }
+
   try {
     const options = {
-      amount: Math.round(amount * 100), // convert to paise
+      amount: Math.round(Number(amount) * 100), // convert to paise and ensure it's a number
       currency: 'INR',
-      receipt: receipt,
+      receipt: String(receipt),
+      payment_capture: 1 // Auto capture
     };
+
+    console.log(`[Razorpay] Creating order for ₹${amount} (${options.amount} paise)`);
     const order = await razorpay.orders.create(options);
+    console.log(`[Razorpay] Order created successfully: ${order.id}`);
     return order;
   } catch (error) {
     console.error('[Razorpay] Create Order Error:', error);
-    throw new Error('Failed to create Razorpay order');
+    // Provide more specific error message from Razorpay if available
+    const errorMessage = error.error ? error.error.description : error.message;
+    throw new Error(`Razorpay Error: ${errorMessage}`);
   }
 };
 
@@ -33,10 +45,17 @@ const createOrder = async (amount, receipt) => {
  * @param {string} signature 
  */
 const verifySignature = (orderId, paymentId, signature) => {
-  const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
-  hmac.update(orderId + "|" + paymentId);
-  const generatedSignature = hmac.digest('hex');
-  return generatedSignature === signature;
+  try {
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(orderId + "|" + paymentId);
+    const generatedSignature = hmac.digest('hex');
+    const isMatched = generatedSignature === signature;
+    console.log(`[Razorpay] Signature verification: ${isMatched ? 'SUCCESS' : 'FAILED'}`);
+    return isMatched;
+  } catch (error) {
+    console.error('[Razorpay] Signature Verification Error:', error);
+    return false;
+  }
 };
 
 module.exports = {
